@@ -58,9 +58,10 @@ app.use(
   })
 );
 
+
 // API Routes
 app.use("/api/v1/user", userRoute);
-app.use("/api/tasks", taskRoute);
+app.use("/api/v1/tasks", taskRoute);
 
 // 404 Handler
 app.use((req, res) => {
@@ -81,8 +82,14 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(port, () => {
+app.listen(port, (res,req) => {
   console.log(
     `Server running on port ${port} in ${process.env.NODE_ENV} mode`
   );
+});
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Server is working perfectly'
+  });
 });
