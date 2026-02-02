@@ -1,95 +1,71 @@
-import express from "express"
-import dotenv from 'dotenv'
-import cors from "cors"
-import helmet from "helmet"
-import hpp from 'hpp'
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import helmet from "helmet";
+import hpp from "hpp";
 import rateLimit from "express-rate-limit";
-import cookieParser from "cookie-parser"
-import connectDB from "./db/index.js"
-import morgan from "morgan"
-import userRoute from "./route/user.route.js"
-import taskRoute from "./route/task.route.js";
+import cookieParser from "cookie-parser";
+import morgan from "morgan";
 
+import connectDB from "./db/index.js";
+import userRoute from "./route/user.route.js";
+import taskRoute from "./route/task.route.js";
 
 dotenv.config();
 
+const app = express();
+
+/* ✅ Connect DB safely */
 await connectDB();
 
-const app = express()
-const port = process.env.PORT||5000
+/* Security */
+app.use(helmet());
+app.use(hpp());
 
+/* Rate limit */
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later.",
+  windowMs: 15 * 60 * 1000,
+  max: 100,
 });
+app.use("/api", limiter);
 
-
-// Security Middleware
-app.use(helmet()); // Set security HTTP headers
-app.use(hpp()); // Prevent HTTP Parameter Pollution
-app.use("/api", limiter); // Apply rate limiting to all routes
-
-// Logging Middleware
+/* Logger */
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-// Body Parser Middleware
-app.use(express.json({ limit: "10kb" })); // Body limit is 10kb
+/* Parsers */
+app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-// CORS Configuration
+/* CORS */
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: process.env.CLIENT_URL,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "device-remember-token",
-      "Access-Control-Allow-Origin",
-      "Origin",
-      "Accept",
-    ],
   })
 );
 
-
-// API Routes
+/* Routes */
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/tasks", taskRoute);
 
-// 404 Handler
+/* Health check */
+app.get("/", (req, res) => {
+  res.json({ message: "Server working on Vercel" });
+});
+
+/* 404 */
 app.use((req, res) => {
-  res.status(404).json({
-    status: "error",
-    message: "Route not found",
-  });
+  res.status(404).json({ message: "Route not found" });
 });
 
-// Global Error Handler.
+/* Error handler */
 app.use((err, req, res, next) => {
-  console.error(err);
-  return res.status(err.statusCode || 500).json({
-    status: "error",
-    message: err.message || "Internal server error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+  res.status(err.statusCode || 500).json({
+    message: err.message || "Internal Server Error",
   });
 });
 
-// Start server
-app.listen(port, (res,req) => {
-  console.log(
-    `Server running on port ${port} in ${process.env.NODE_ENV} mode`
-  );
-});
-
-app.get('/', (req, res) => {
-  res.status(200).json({
-    message: 'Server is working perfectly'
-  });
-});
+export default app; 
