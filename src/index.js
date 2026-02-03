@@ -44,7 +44,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://task-manager-backend-vv9r-gaunwckse-devansh-parashars-projects.vercel.app/"
+      "https://task-manager-backend-vv9r.vercel.app/"
     ],
     credentials: true,
   })
